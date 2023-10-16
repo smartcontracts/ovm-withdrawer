@@ -30,7 +30,10 @@ program
     })
 
     let data
-    if (args.l1Token === 'eth' && args.l2Token === 'eth') {
+    if (
+      (args.l1Token === 'eth' || args.l1Token === '0x0000000000000000000000000000000000000000') &&
+      (args.l2Token === 'eth' || args.l2Token === '0x4200000000000000000000000000000000000006')
+    ) {
       data = xdm.contracts.l1.L1StandardBridge.interface.encodeFunctionData(
         'finalizeETHWithdrawal',
         [
