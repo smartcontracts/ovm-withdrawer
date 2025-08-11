@@ -1,6 +1,6 @@
-import { BigNumber, ethers } from 'ethers'
+import { ethers } from 'ethers'
 import { program } from 'commander'
-import { CrossChainMessenger, MessageDirection, hashLowLevelMessage, hashMessageHash } from '@eth-optimism/sdk'
+import { CrossChainMessenger, MessageDirection } from '@eth-optimism/sdk'
 
 program
   .name('ovmwd')
@@ -17,9 +17,11 @@ program
   .requiredOption('--to <to>', 'to address')
   .requiredOption('--nonce <nonce>', 'message nonce')
   .requiredOption('--pk <key>', 'private key to prove or relay with')
+  .requiredOption('--l1-rpc <url>', 'l1 rpc url')
+  .requiredOption('--l2-rpc <url>', 'l2 rpc url')
   .action(async (args) => {
-    const l1Provider = new ethers.providers.InfuraProvider('mainnet')
-    const l2Provider = new ethers.providers.StaticJsonRpcProvider('https://mainnet.optimism.io')
+    const l1Provider = new ethers.providers.InfuraProvider(args.l1Rpc)
+    const l2Provider = new ethers.providers.StaticJsonRpcProvider(args.l2Rpc)
     const l1Wallet = new ethers.Wallet(args.pk, l1Provider)
     const xdm = new CrossChainMessenger({
       l1SignerOrProvider: l1Wallet,
@@ -70,29 +72,11 @@ program
       message: data
     }
 
-    const withdrawal = await xdm.toLowLevelMessage(message)
-    const slot = hashLowLevelMessage(withdrawal)
-    const proven = await xdm.contracts.l1.OptimismPortal.provenWithdrawals(slot)
-
-    if (proven.timestamp.eq(BigNumber.from(0))) {
-      console.log('withdrawal not proven')
-      const receipt = await xdm.proveMessage(message)
-      console.log('transaction:', receipt.transactionHash)
-      await receipt.wait()
-      console.log('withdrawal proven')
-    } else {
-      const challengePeriod = await xdm.getChallengePeriodSeconds()
-      const latestBlock = await xdm.l1Provider.getBlock('latest')
-      if (proven.timestamp.toNumber() + challengePeriod > latestBlock.timestamp) {
-        console.log('withdrawal is still in challenge period')
-      } else {
-        console.log('withdrawal is ready to be executed')
-        const receipt = await xdm.finalizeMessage(message)
-        console.log('transaction:', receipt.transactionHash)
-        await receipt.wait()
-        console.log('withdrawal executed')
-      }
-    }
+    console.log('proving withdrawal')
+    const receipt = await xdm.proveMessage(message)
+    console.log('transaction:', receipt.transactionHash)
+    await receipt.wait()
+    console.log('withdrawal proven')
   })
 
 program.parse(process.argv)
