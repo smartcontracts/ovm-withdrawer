@@ -20,7 +20,7 @@ program
   .requiredOption('--l1-rpc <url>', 'l1 rpc url')
   .requiredOption('--l2-rpc <url>', 'l2 rpc url')
   .action(async (args) => {
-    const l1Provider = new ethers.providers.InfuraProvider(args.l1Rpc)
+    const l1Provider = new ethers.providers.StaticJsonRpcProvider(args.l1Rpc)
     const l2Provider = new ethers.providers.StaticJsonRpcProvider(args.l2Rpc)
     const l1Wallet = new ethers.Wallet(args.pk, l1Provider)
     const xdm = new CrossChainMessenger({
